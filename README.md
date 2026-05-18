@@ -1,5 +1,9 @@
 # Parallel Programming & Distributed Computing
 
+<p align="center">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Gospers_glider_gun.gif" alt="Conway's Game of Life animation" width="320">
+</p>
+
 [![Contributor](https://img.shields.io/badge/Contributor-mariocosenza-blue?style=flat-square&logo=github)](https://github.com/mariocosenza)
 [![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue?style=flat-square)](LICENSE)
 
@@ -16,7 +20,9 @@ All subsequent sections of this documentation will focus exclusively on the arch
 Click a badge to jump to the corresponding section.
 
 [![Conway's Game of Life](https://img.shields.io/badge/Conway%27s%20Game%20of%20Life-1f77b4?style=flat-square)](#conways-game-of-life) [![Solution Requirements](https://img.shields.io/badge/Solution%20Requirements-2ca02c?style=flat-square)](#solution-requirements) [![Correctness TODO](https://img.shields.io/badge/Correctness%20TODO-f39c12?style=flat-square)](#correctness-todo)
+
 [![Experimental Setup](https://img.shields.io/badge/Experimental%20Setup%20%26%20Benchmark%20Methodology-7f8c8d?style=flat-square)](#experimental-setup--benchmark-methodology) [![Hardware Configuration](https://img.shields.io/badge/Hardware%20Configuration-34495e?style=flat-square)](#hardware-configuration-for-the-benchmark) [![Running the Test](https://img.shields.io/badge/Running%20the%20Test-d35400?style=flat-square)](#running-the-test)
+
 [![Matrix Naming Convention](https://img.shields.io/badge/Matrix%20Naming%20Convention-8e44ad?style=flat-square)](#matrix-naming-convention) [![Test Result TODO](https://img.shields.io/badge/Test%20Result%20TODO-c0392b?style=flat-square)](#test-result-todo)
 
 ## Conway's Game of Life

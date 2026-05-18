@@ -1,5 +1,55 @@
-# Conway's Game of Life - Programmazione Concorrente, Parallela e su Cloud
+# Parallel Programming & Distributed Computing
 
+[![Contributor](https://img.shields.io/badge/Contributor-mariocosenza-blue?style=flat-square&logo=github)](https://github.com/mariocosenza)
+[![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue?style=flat-square)](LICENSE)
+
+This repository hosts the laboratory assignments and the final capstone project for the **Parallel Programming and Parallel Computing** course (A.Y. 2026) at the University of Salerno, supervised by Prof. [@spagnuolocarmine](https://github.com/spagnuolocarmine).
+
+To ensure the reproducibility of the experiments, the project leverages Infrastructure as Code (IaC). The repository includes a Terraform configuration script (`main.tf`) designed to automatically provision a compute cluster on the Google Cloud Platform (GCP). For comprehensive deployment instructions, please refer to the *How to Set Up the Experiment* section.
+
+The `mpi` directory contains the source code for Labs 3 through 8, alongside a dedicated examples folder. The core of this repository is **Lab 8**, the final course project, which assesses advanced parallel computing paradigms utilizing the C Message Passing Interface (MPI) standard. Among the three proposed project tracks, this repository implements a distributed version of **Conway's Game of Life**. 
+
+All subsequent sections of this documentation will focus exclusively on the architecture, implementation, and performance analysis of this final project.
+
+## Conway's Game of Life
+
+Conway's Game of Life is a iconic **cellular automaton** devised by the British mathematician John Horton Conway in 1970. It is classified as a *zero-player game*, meaning its evolution is entirely determined by its initial state, requiring no further human intervention.
+
+The game unfolds on an infinite or bounded two-dimensional orthogonal grid of square cells, each of which can exist in one of two possible states: **alive** or **dead**. Every cell interacts with its eight immediate neighbors (**Moore neighborhood**). At each step in time (generation), the system transitions to the next state based on a deterministic set of rules applied simultaneously to all cells:
+
+* **Underpopulation:** Any live cell with fewer than two live neighbors dies.
+* **Survival:** Any live cell with two or three live neighbors lives on to the next generation unchanged.
+* **Overpopulation:** Any live cell with more than three live neighbors dies.
+* **Reproduction:** Any dead cell with exactly three live neighbors becomes a live cell.
+
+From a computational perspective, the grid's deterministic synchronization and localized neighborhood dependencies make the Game of Life an ideal candidate for **domain decomposition** and parallel scalability evaluations using MPI.
+
+## Solution Requirements
+
+### Core Architecture and Paradigm
+The distributed system is implemented entirely in native **C** and leverages the standard **Message Passing Interface (MPI)** library for parallelization across distributed memory environments.
+
+### Grid Flexibility
+The software dynamically supports arbitrary matrix configurations ($M \times N$). It handles non-uniform topologies, uneven edge distributions, and variable aspect ratios without any hardcoded dimensional constraints.
+
+### Execution Depth
+The application executes the cellular automaton simulation for any user-defined number of generations ($G \ge 0$). Specifying a depth of zero preserves the initial setup configuration without executing any lifecycle updates.
+
+### Centralized Domain Decomposition
+The initialization phase is entirely centralized. The master node (Rank 0) ingests the unsegmented, complete global matrix, handles the initial domain partitioning, and manages the execution flow by scattering the initial data shards to the working processes at runtime.
+
+### Process Invariance
+The internal parallel mechanics, halo exchanges, and boundary computations are strictly deterministic. The final simulation state is completely decoupled from the topology of the execution cluster, yielding bit-by-bit identical results regardless of the process count.
+
+### Dynamic Resource Allocation
+The codebase adapts dynamically to the execution environment at runtime. The system scales its horizontal boundaries seamlessly to match the exact process count designated by the user during launch execution (e.g., `mpirun -np <P>`).
+
+### Final State Persistence
+Upon completing the final iteration, the distributed matrix partitions are automatically gathered and stitched back together on the master node to reconstruct the complete final generation, which is then committed to persistent storage.
+
+All of the implementation snippets below are taken from [mpi/lab8/lab8vm-file.c](mpi/lab8/lab8vm-file.c). Each block highlights one step of the distributed pipeline, from partitioning and I/O to halo exchange and final output.
+
+The first helper splits a global dimension across the available MPI ranks and stores both the per-rank sizes and the starting offsets.
 
 ```c
 void partition_dimension(uint32_t total, int parts, int *sizes, int *offsets) {
@@ -17,6 +67,8 @@ void partition_dimension(uint32_t total, int parts, int *sizes, int *offsets) {
     }
 }
 ```
+
+The next helper reads the local submatrix assigned to a worker from the global binary file using the offsets computed by the master process.
 
 ```c
 void read_matrix_from_file(void *out_matrix, int *sizes, int *subsizes, int *starts) {
@@ -51,6 +103,8 @@ void read_matrix_from_file(void *out_matrix, int *sizes, int *subsizes, int *sta
 }
 ```
 
+This function posts the non-blocking receives for the top and bottom ghost rows used during halo exchange.
+
 ```c
 void async_recv_top_bottom(MPI_Comm comm, Game_matrix *gm, int top_rank, int bot_rank, MPI_Request req[2]) {
     req[0] = MPI_REQUEST_NULL;
@@ -63,6 +117,8 @@ void async_recv_top_bottom(MPI_Comm comm, Game_matrix *gm, int top_rank, int bot
     }
 }
 ```
+
+The worker routine owns the local slice of the matrix, exchanges ghost layers with its neighbors, evolves the automaton for each generation, and optionally writes the final distributed state back to disk.
 
 ```c
 void run_worker(int mpi_dims[2], MPI_Comm split_comm, int sizes[2], int subsizes[2], int starts[2]) {
@@ -187,6 +243,8 @@ void run_worker(int mpi_dims[2], MPI_Comm split_comm, int sizes[2], int subsizes
 }
 ```
 
+The master routine computes the 2D partition, prepares the metadata for every worker, and sends the size and offset information needed to reconstruct the global layout.
+
 ```c
 void run_master(int mpi_dims[2], MPI_Comm split_comm, uint32_t M, uint32_t N, int sizes[2], int subsizes[2], int starts[2]) {
     int row_sizes[mpi_dims[0]], row_offsets[mpi_dims[0]];
@@ -219,6 +277,8 @@ void run_master(int mpi_dims[2], MPI_Comm split_comm, uint32_t M, uint32_t N, in
     starts[1]   = col_offsets[0];
 }
 ```
+
+The `main` entry point ties the whole application together: it reads the user parameters, initializes MPI, chooses how many processes can actually be used for the current matrix size, builds the 2D process grid, splits the global communicator, dispatches the master and worker roles, and finally reduces the execution time so the root rank can print the overall benchmark result.
 
 ```c
 int main(int argc, char **argv) {
@@ -280,6 +340,8 @@ int main(int argc, char **argv) {
 }
 ```
 
+The last utility generates the seed matrix used as input for the simulation. It supports the following parameters: `-M <rows>`, `-N <cols>`, `-S <seed>` for deterministic random generation, `-P <pattern>` for predefined shapes (`0` random, `1` glider, `2` blinker, `3` block), and `-R` to read `full_matrix.bin` and print it instead of creating a new file. TODO: add `-PM` to manually draw the matrix.
+
 ```c
 void write_matrix_to_file_fast(uint32_t M, uint32_t N) {
     char filename[256];
@@ -330,6 +392,144 @@ void write_matrix_to_file_fast(uint32_t M, uint32_t N) {
     printf("Matrice %u x %u scritta su %s (Pattern: %s)\n", M, N, filename, pattern_names[PATTERN]);
 }
 ```
+
+`verify.c` is a checker utility: it reads `full_matrix.bin`, prints the matrix row by row, and counts the live cells so you can quickly validate the generated state.
+
+`view.c` is the visual inspection tool: it loads the initial and final binary matrices, compares them, and offers a GUI to toggle between wipe and fade animations while showing summary statistics.
+
+## Matrix Naming Convention
+
+Input matrices generated for the simulation follow the naming pattern `matrix_<rows>x<cols>_seed<seed>_pattern<pattern>.bin`. This convention makes every file self-descriptive: the matrix dimensions are embedded first, followed by the random seed used for deterministic generation and the pattern selector used to build the initial state.
+
+The main runtime output produced by the MPI application is `full_matrix.bin`, which stores the complete final generation after the distributed execution ends. Together, these names make it easy to trace a run from its input matrix to its final result.
+
+## Experimental Setup & Benchmark Methodology
+
+The performance evaluation of this distributed system was conducted across two distinct hardware environments: a local Windows development machine and a high-performance distributed computing cluster provisioned on the Google Cloud Platform (GCP).
+
+### Windows Local Environment Setup
+
+To conduct local comparative performance profiling, the application supports execution via both **Microsoft MPI (MS-MPI)** and **Intel oneAPI MPI**.
+
+#### 1. Microsoft MPI (MS-MPI) Implementation
+
+1. Download and run the official MS-MPI installer executable from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?id=105289).
+2. Manually append the binaries path to your system's environment variables (`PATH`) to expose `mpiexec` and `mpicc` natively inside PowerShell or the Command Prompt.
+3. For compilation on `x86-64` Windows environments via GCC (such as the Cygwin toolchain), the include directories and library paths must be explicitly linked.
+
+You can automate this build process in Visual Studio Code by mapping the compilation to a shortcut (`Ctrl+Shift+B`) using the following configuration inside `.vscode/tasks.json`:
+
+```json
+{
+    "label": "Windows: Compile MPI C",
+    "type": "shell",
+    "command": "gcc",
+    "args": [
+        "${file}",
+        "-o", "${fileDirname}\\${fileBasenameNoExtension}.exe",
+        "-I", "C:\\Program Files (x86)\\Microsoft SDKs\\MPI\\Include",
+        "-L", "C:\\Program Files (x86)\\Microsoft SDKs\\MPI\\Lib\\x64",
+        "-lmsmpi"
+    ],
+    "group": "build"
+}
+```
+
+#### 2. Intel oneAPI MPI & VTune Profiling
+
+For deeper hardware-level auditing, the primary choice for this project was the Intel MPI ecosystem due to its native cross-platform availability and diagnostic toolchain integration.
+
+Install Visual Studio 2026 or Visual Studio Build Tools 2026, ensuring the Desktop Development with C++ workload is checked, specifically including the MSVC v143 toolchain and the Windows 11 SDK.
+
+Download the online installer for the Intel oneAPI Base Toolkit and HPC Toolkit.
+
+Select the Intel VTune Profiler option during setup. VTune provides deep-dive performance metrics for distributed applications, uncovering architectural hotspots, threading efficiency, HPC characterizations, and memory access bottlenecks.
+
+> Note: To activate hardware-level low-overhead event profiling inside VTune, the required Intel sampling drivers must be installed with administrative privileges on your platform.
+
+### Compiler Optimization Flags
+
+While Intel provides different MPI compilers, all source files in this project are compiled using `mpiicx`. This is Intel's latest generation C/C++ compiler based on the modern LLVM framework, offering stronger vectorization and optimization passes.
+
+The compilation string is specifically tailored to maximize hardware utilization on the host architecture while safely bypassing compiler bottlenecks:
+
+```bash
+mpiicx -O3 -QxHost -Qipo -ffast-math -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_CRT_SECURE_NO_WARNINGS lab8vm-file.c -o game_of_life.exe
+```
+
+| Flag | Functional Purpose |
+| --- | --- |
+| `-O3` | Enables aggressive high-level optimizations, including loop vectorization, unrolling, and aggressive code restructuring. |
+| `-QxHost` / `-xHost` | Directs the compiler to generate specialized code targeting the highest instruction set architecture extensions available natively on the compilation host machine. |
+| `-Qipo` / `-ipo` | Activates interprocedural optimization, analyzing code structures across multiple source translation units to optimize function inlining. |
+| `-ffast-math` | Breaks strict IEEE 754 compliance for floating-point math to accelerate execution through hardware approximations. |
+| `-Qiopenmp-simd` | Forces the compiler to scan and optimize OpenMP SIMD directives to vectorize loops without runtime threading overhead. |
+| `-Qopt-mem-layout-trans:3` | Performs level-3 memory layout transformations on data structures to maximize cache spatial locality and improve structural layout alignment. |
+
+### Process Pinning & Thread Affinity
+
+To mitigate execution jitter caused by the operating system migrating processes across different physical cores, explicit process pinning was enforced via the Intel MPI runtime environment variables:
+
+```bash
+mpiexec -n <P> -genv I_MPI_PIN_DOMAIN=core -genv I_MPI_PIN_ORDER=compact game_of_life.exe
+```
+
+`I_MPI_PIN_DOMAIN=core` binds each individual MPI process to an isolated physical CPU core.
+
+`I_MPI_PIN_ORDER=compact` allocates sibling ranks to adjacent cores first, optimizing cache sharing and lowering inter-node latency.
+
+### Linux Cluster Environment Setup
+
+For horizontal scale evaluation, cluster orchestration on the Google Cloud Platform is completely automated through Terraform, leveraging an infrastructure bootstrap script (`install.sh`).
+
+The provisioning script automates the complete provisioning pipeline on Rocky Linux nodes:
+
+1. User identity and privilege access: creates a dedicated system user `pcpc` bound to the security group `wheel` to authorize seamless passwordless sudo execution.
+2. Core dependencies provisioning: automatically resolves packages via `dnf` to install system compilation assets (`vim`, `git`, `gcc`, `gcc-c++`, `make`) alongside security binaries (`openssh-clients`, `openssh-server`).
+3. Intel oneAPI repository mapping: configures the official Intel package signatures (`oneAPI.repo`) to handle repository metadata verification.
+4. Cloud-native MPI integration: automatically detects GCP instances and hooks into `google_install_intelmpi` to link specialized low-latency fabrics.
+5. HPC stack installation: installs the unified parallel runtime stack (`intel-oneapi-compiler-dpcpp-cpp`, `intel-oneapi-mpi-devel`, and `intel-oneapi-vtune`).
+6. Passwordless inter-node authentication: programmatically bakes the generated deployment RSA keys (`id_rsa`, `id_rsa.pub`) into the `authorized_keys` vault of all nodes, enforcing strict security boundaries and ensuring smooth rank execution during `mpirun`.
+7. Repository setup: automatically clones the source repository into `/home/pcpc/pcpc-mpi`.
+8. Environmental variable initialization: automatically injects the Intel compilation variables (`setvars.sh`) and core pinning topologies directly into the user's login shell profiles (`.bashrc`).
+9. Targeted native compilations: accesses the workspace directory and dynamically applies the specific Intel Sapphire Rapids hardware optimization flags (`-xSAPPHIRERAPIDS`) to build the binaries using the LLVM-based `mpiicx` compiler:
+
+```bash
+FLAGS="-O3 -xSAPPHIRERAPIDS -ipo -ffast-math -fiopenmp-simd -qopt-mem-layout-trans=3"
+mpiicx $FLAGS generate_seed.c -o generate_seed
+mpiicx $FLAGS lab8vm-file.c -o game_of_life
+```
+
+## Hardware Configuration for the Benchmark
+
+### Windows Local Machine
+
+| Item | Details |
+| --- | --- |
+| OS | Windows 11 build 26200 |
+| CPU | 12th Gen Intel Core i5-1235U at 1300 MHz, with 2 performance cores, 8 efficiency cores, and 12 logical processors total |
+| Memory | 8 GB RAM |
+| Storage | 500 GB SSD |
+| Power profile | High performance |
+| Power state | Connected to the power supply |
+| Virtual memory | Swap file enabled |
+
+### GCP Cluster
+
+| Item | Details |
+| --- | --- |
+| Region | `us-west2` |
+| Node count | 8 |
+| Placement policy | `availability_domain_count = 1`, `collocation = "COLLOCATED"` |
+| OS image | `rocky-linux-10-optimized-gcp-v20260427` |
+| Machine type | `c3-standard-8` |
+| CPU | Intel(R) Xeon(R) Platinum 8481C CPU @ 2.70GHz |
+| Hyperthreading | Disabled |
+| Core mapping | 1:1 mapping between vCPU and physical core |
+| Memory | 32 GB RAM per node |
+| Storage | 40 GB Hyperdisk Balanced, 3000 IOPS, 360 MB/s throughput |
+| Network tier | Premium |
+| Firewall | Intra-cluster SSH, TCP, and UDP allowed with the `mpi-node` tag |
 
 ![7zip_benchmark](mpi/lab8/results/images/7zip_benchmark.png)
 

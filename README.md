@@ -47,10 +47,10 @@ The codebase adapts dynamically to the execution environment at runtime. The sys
 ### Final State Persistence
 Upon completing the final iteration, the distributed matrix partitions are automatically gathered and stitched back together on the master node to reconstruct the complete final generation, which is then committed to persistent storage.
 
-All of the implementation snippets below are taken from [mpi/lab8/lab8vm-file.c](mpi/lab8/lab8vm-file.c). Each block highlights one step of the distributed pipeline, from partitioning and I/O to halo exchange and final output.
+All of the implementation snippets below are taken from [mpi/lab8/lab8vm-file.c](mpi/lab8/lab8vm-file.c). They are grouped inside hidden `<details>` blocks that stay collapsed by default, so the explanation stays compact until you expand each section.
 
 <details>
-<summary>The first helper splits a global dimension across the available MPI ranks and stores both the per-rank sizes and the starting offsets.</summary>
+<summary>Details section: the first helper splits a global dimension across the available MPI ranks and stores both the per-rank sizes and the starting offsets.</summary>
 
 ```c
 void partition_dimension(uint32_t total, int parts, int *sizes, int *offsets) {
@@ -72,7 +72,7 @@ void partition_dimension(uint32_t total, int parts, int *sizes, int *offsets) {
 </details>
 
 <details>
-<summary>The next helper reads the local submatrix assigned to a worker from the global binary file using the offsets computed by the master process.</summary>
+<summary>Details section: the next helper reads the local submatrix assigned to a worker from the global binary file using the offsets computed by the master process.</summary>
 
 ```c
 void read_matrix_from_file(void *out_matrix, int *sizes, int *subsizes, int *starts) {
@@ -110,7 +110,7 @@ void read_matrix_from_file(void *out_matrix, int *sizes, int *subsizes, int *sta
 </details>
 
 <details>
-<summary>This function posts the non-blocking receives for the top and bottom ghost rows used during halo exchange.</summary>
+<summary>Details section: this block posts the non-blocking receives for the top and bottom ghost rows used during halo exchange.</summary>
 
 ```c
 void async_recv_top_bottom(MPI_Comm comm, Game_matrix *gm, int top_rank, int bot_rank, MPI_Request req[2]) {
@@ -128,7 +128,7 @@ void async_recv_top_bottom(MPI_Comm comm, Game_matrix *gm, int top_rank, int bot
 </details>
 
 <details>
-<summary>The worker routine owns the local slice of the matrix, exchanges ghost layers with its neighbors, evolves the automaton for each generation, and optionally writes the final distributed state back to disk.</summary>
+<summary>Details section: the worker routine owns the local slice of the matrix, exchanges ghost layers with its neighbors, evolves the automaton for each generation, and optionally writes the final distributed state back to disk.</summary>
 
 ```c
 void run_worker(int mpi_dims[2], MPI_Comm split_comm, int sizes[2], int subsizes[2], int starts[2]) {
@@ -256,7 +256,7 @@ void run_worker(int mpi_dims[2], MPI_Comm split_comm, int sizes[2], int subsizes
 </details>
 
 <details>
-<summary>The master routine computes the 2D partition, prepares the metadata for every worker, and sends the size and offset information needed to reconstruct the global layout.</summary>
+<summary>Details section: the master routine computes the 2D partition, prepares the metadata for every worker, and sends the size and offset information needed to reconstruct the global layout.</summary>
 
 ```c
 void run_master(int mpi_dims[2], MPI_Comm split_comm, uint32_t M, uint32_t N, int sizes[2], int subsizes[2], int starts[2]) {
@@ -294,7 +294,7 @@ void run_master(int mpi_dims[2], MPI_Comm split_comm, uint32_t M, uint32_t N, in
 </details>
 
 <details>
-<summary>The `main` entry point ties the whole application together: it reads the user parameters, initializes MPI, chooses how many processes can actually be used for the current matrix size, builds the 2D process grid, splits the global communicator, dispatches the master and worker roles, and finally reduces the execution time so the root rank can print the overall benchmark result.</summary>
+<summary>Details section: the `main` entry point ties the whole application together: it reads the user parameters, initializes MPI, chooses how many processes can actually be used for the current matrix size, builds the 2D process grid, splits the global communicator, dispatches the master and worker roles, and finally reduces the execution time so the root rank can print the overall benchmark result.</summary>
 
 ```c
 int main(int argc, char **argv) {
@@ -359,7 +359,7 @@ int main(int argc, char **argv) {
 </details>
 
 <details>
-<summary>The last utility generates the seed matrix used as input for the simulation. It supports the following parameters: `-M <rows>`, `-N <cols>`, `-S <seed>` for deterministic random generation, `-P <pattern>` for predefined shapes (`0` random, `1` glider, `2` blinker, `3` block), and `-R` to read `full_matrix.bin` and print it instead of creating a new file. TODO: add `-PM` to manually draw the matrix.</summary>
+<summary>Details section: the last utility generates the seed matrix used as input for the simulation. It supports the following parameters: `-M <rows>`, `-N <cols>`, `-S <seed>` for deterministic random generation, `-P <pattern>` for predefined shapes (`0` random, `1` glider, `2` blinker, `3` block), and `-R` to read `full_matrix.bin` and print it instead of creating a new file. TODO: add `-PM` to manually draw the matrix.</summary>
 
 ```c
 void write_matrix_to_file_fast(uint32_t M, uint32_t N) {
@@ -528,7 +528,7 @@ mpiicx $FLAGS lab8vm-file.c -o game_of_life
 | Item | Details |
 | --- | --- |
 | OS | Windows 11 build 26200 |
-| CPU | 12th Gen Intel Core i5-1235U at 1300 MHz, with 2 performance cores, 8 efficiency cores, and 12 logical processors total |
+| CPU | 12th Gen Intel Core i5-1235U with a 1.30 GHz base clock and up to 4.40 GHz turbo, with 2 performance cores, 8 efficiency cores, and 12 logical processors total |
 | Memory | 8 GB RAM |
 | Storage | 500 GB SSD |
 | Power profile | High performance |

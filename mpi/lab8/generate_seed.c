@@ -35,6 +35,7 @@ void write_matrix_to_file_fast(uint32_t M, uint32_t N) {
             }
             printf("\n");
         }
+        printf("----------------\n");
     }
      
 
@@ -89,7 +90,6 @@ void parse_args(int argc, char **argv, uint32_t *M, uint32_t *N) {
             case 'M': *M = (uint32_t)atoi(optarg); break;
             case 'S': SEED = (uint32_t)atoi(optarg); break;
             case 'P': PATTERN = atoi(optarg); break;
-            case 'PM': PATTERN = 4; break;
             case '?':
             default:
                 fprintf(stderr, "Usage: %s [-M rows] [-N cols] [-S seed] [-P pattern] [-R]\n", argv[0]);
@@ -97,7 +97,6 @@ void parse_args(int argc, char **argv, uint32_t *M, uint32_t *N) {
                 fprintf(stderr, "  -N cols    Number of columns (default: 100)\n");
                 fprintf(stderr, "  -S seed    Random seed for pattern 0 (default: 1234)\n");
                 fprintf(stderr, "  -P pattern Pattern type (0=random, 1=glider, 2=blinker, 3=block, 4=custom) (default: 0)\n");
-                fprintf(stderr, "  -PM        Use custom pattern input mode (same as -P 4)\n");
                 exit(EXIT_FAILURE);
         }
     }

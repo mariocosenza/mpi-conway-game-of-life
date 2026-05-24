@@ -23,7 +23,7 @@ Click a badge to jump to the corresponding section.
 
 [![Experimental Setup](https://img.shields.io/badge/Experimental%20Setup%20%26%20Benchmark%20Methodology-7f8c8d?style=flat-square)](#experimental-setup--benchmark-methodology) [![Hardware Configuration](https://img.shields.io/badge/Hardware%20Configuration-34495e?style=flat-square)](#hardware-configuration-for-the-benchmark) [![Running the Test](https://img.shields.io/badge/Running%20the%20Test-d35400?style=flat-square)](#running-the-test)
 
-[![Matrix Naming Convention](https://img.shields.io/badge/Matrix%20Naming%20Convention-8e44ad?style=flat-square)](#matrix-naming-convention) [![Test Result TODO](https://img.shields.io/badge/Test%20Result%20TODO-c0392b?style=flat-square)](#test-result-todo)
+[![Matrix Naming Convention](https://img.shields.io/badge/Matrix%20Naming%20Convention-8e44ad?style=flat-square)](#matrix-naming-convention) [![Final Result](https://img.shields.io/badge/Final%20Result-c0392b?style=flat-square)](#final-result)
 
 ## Conway's Game of Life
 
@@ -637,7 +637,77 @@ Additional notes:
 - On Linux, make sure the scripts have execute permission before running them.
 - On Windows, run the VTune test as Administrator.
 
-## Test Result TODO
+## Final Result
 
-- TODO: document the expected benchmark outputs and the naming convention of the generated `.txt` result files.
-- TODO: summarize the VTune profiling directories and explain how to read the collected reports.
+The charts below are derived from [time.csv](mpi/lab8/results/time.csv) and summarize the final benchmark behavior of the implementation. The six main figures are shown as large, full-width images so the scaling trend is easy to read, while the remaining result charts stay in [mpi/lab8/results/images](mpi/lab8/results/images).
+
+<p align="center">
+    <img src="mpi/lab8/results/images/speedup_linux_overview.png" alt="Speedup - Linux" width="980">
+</p>
+
+<p><strong>Speedup - Linux.</strong> The Linux runs scale almost linearly only for the larger inputs; the smallest matrices are dominated by communication and launch overhead.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/efficiency_linux_overview.png" alt="Efficiency - Linux" width="980">
+</p>
+
+<p><strong>Efficiency - Linux.</strong> Efficiency stays close to 1 for the largest case and quickly degrades for small matrices, which confirms that the problem must be large enough to amortize the parallel cost.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/speedup_windows_overview.png" alt="Speedup - Windows" width="980">
+</p>
+
+<p><strong>Speedup - Windows.</strong> Windows shows a smoother but more limited growth, with the best gains concentrated in the medium and large matrix sizes.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/efficiency_windows_overview.png" alt="Efficiency - Windows" width="980">
+</p>
+
+<p><strong>Efficiency - Windows.</strong> The efficiency curve drops as the process count grows, but it remains more stable than the very small problem sizes.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/time_linux_overview.png" alt="Time - Linux" width="980">
+</p>
+
+<p><strong>Time - Linux.</strong> The Linux execution time decreases clearly on the largest matrix cases, showing that the workload finally outweighs the MPI setup cost.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/time_windows_overview.png" alt="Time - Windows" width="980">
+</p>
+
+<p><strong>Time - Windows.</strong> Windows follows the same downward trend, but the improvement saturates earlier than on Linux.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/threading_20k_p12_linux.png" alt="Threading - Linux" width="980">
+</p>
+
+<p><strong>Threading - Linux.</strong> This screenshot shows the effective CPU utilization for the Linux run. The total thread count matches the intended parallel configuration, and the profile highlights how much time is spent waiting versus actively using the available CPUs.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/hotspot_20k_p12_linux.png" alt="Hotspots - Linux" width="980">
+</p>
+
+<p><strong>Hotspots - Linux.</strong> The hotspots view identifies <code>main</code> inside <code>game_of_life</code> as the dominant consumer of CPU time, which is expected for the core simulation loop. The remaining runtime is split across MPI and system calls.</p>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/hpc_hw_50k_p10_win.png" alt="HPC Performance Characterization - Windows" width="980">
+</p>
+
+<p><strong>HPC Performance Characterization - Windows.</strong> This report highlights memory pressure, cache behavior, and DRAM activity. The memory-bound share is non-trivial, which explains why the larger Windows cases do not scale as aggressively as the Linux runs.</p>
+
+</details>
+
+<details>
+<summary><u>Details section</u>: the weaker Windows threading report is kept here as a reference for the less favorable run.</summary>
+
+<p align="center">
+    <img src="mpi/lab8/results/images/thread_20k_p12_win.png" alt="Threading - Windows" width="980">
+</p>
+
+<p><strong>Threading - Windows.</strong> This Windows threading view shows a much weaker utilization pattern, with most of the time spent in idle or waiting states. It is useful for spotting contention and launch overhead on the local platform.</p>
+
+</details>
+
+The additional charts in [mpi/lab8/results/images](mpi/lab8/results/images) show the per-size breakdown for `Speedup - Matrice 6x6`, `Efficiency - Matrice 6x6`, `Speedup - Matrice 10x10`, `Efficiency - Matrice 10x10`, `Speedup - Matrice 840x840`, `Efficiency - Matrice 840x840`, `Speedup - Matrice 1680x1680`, `Efficiency - Matrice 1680x1680`, `Speedup - Matrice 3360x3360`, `Efficiency - Matrice 3360x3360`, `Speedup - Matrice 13440x13440`, `Efficiency - Matrice 13440x13440`, `Speedup - Matrice 20Kx20K`, `Efficiency - Matrice 20Kx20K`, `Speedup - Matrice 50Kx50K 20GEN`, `Efficiency - Matrice 50Kx50K 20GEN`, `Time Matrix 100Kx100K 5GEN - Linux`, `Time Matrix 100Kx50K 5GEN`, `Overhead Random Matrix Generation, Profiling and Output Saving`, and `Confronto Varianti di Esecuzione 20Kx20K`.
+
+Overall, the final results show the same pattern across the different views: very small matrices are overhead-bound, medium matrices begin to benefit from parallelism, and the largest cases provide the clearest scaling gains. The extra generation/profiling/output-saving charts confirm that those auxiliary phases introduce some overhead, but they do not change the main conclusion that the implementation scales best when the matrix is large enough to keep all processes busy.

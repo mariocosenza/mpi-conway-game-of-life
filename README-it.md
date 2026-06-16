@@ -1,4 +1,4 @@
-# Game of Life di Conway in MPI: Programmazione Parallela e Distribuita
+# Game of Life di Conway in MPI
 
 <p align="center">
     <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Gospers_glider_gun.gif" alt="Animazione del Gioco della Vita di Conway" width="320">

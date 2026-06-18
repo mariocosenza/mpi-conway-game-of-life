@@ -522,7 +522,7 @@ Anche se Intel fornisce diversi compilatori MPI, tutti i file sorgente di questo
 La stringa di compilazione e stata costruita appositamente per massimizzare l'utilizzo dell'hardware sulla macchina host evitando in sicurezza i colli di bottiglia del compilatore:
 
 ```bash
-mpiicx -O3 -QxHost -Qipo -ffast-math -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_CRT_SECURE_NO_WARNINGS lab8vm-file.c -o game_of_life.exe
+mpiicx -O3 -QxHost -Qipo -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_CRT_SECURE_NO_WARNINGS lab8vm-file.c -o game_of_life.exe
 ```
 
 | Flag | Funzione |
@@ -530,7 +530,6 @@ mpiicx -O3 -QxHost -Qipo -ffast-math -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_
 | `-O3` | Abilita ottimizzazioni aggressive di alto livello, tra cui vectorization dei cicli, unrolling e ristrutturazione aggressiva del codice. |
 | `-QxHost` / `-xHost` | Indica al compilatore di generare codice specializzato per le estensioni dell'ISA piu elevate disponibili nativamente sulla macchina di compilazione. |
 | `-Qipo` / `-ipo` | Attiva l'ottimizzazione interprocedurale, analizzando le strutture del codice tra piu unita di traduzione per ottimizzare l'inlining delle funzioni. |
-| `-ffast-math` | Allenta la conformita stretta allo standard IEEE 754 per la matematica floating-point per accelerare l'esecuzione tramite approssimazioni hardware. |
 | `-Qiopenmp-simd` | Forza il compilatore a esaminare e ottimizzare le direttive OpenMP SIMD per vectorizzare i cicli senza overhead di threading a runtime. |
 | `-Qopt-mem-layout-trans:3` | Esegue trasformazioni di layout della memoria di livello 3 sulle strutture dati per massimizzare la locality spaziale della cache e migliorare l'allineamento del layout strutturale. |
 
@@ -563,7 +562,7 @@ Lo script di provisioning automatizza l'intera pipeline di provisioning sui nodi
 9. Compilazioni native mirate: accede alla directory del workspace e applica dinamicamente i flag di ottimizzazione hardware specifici per Intel Sapphire Rapids (`-xSAPPHIRERAPIDS`) per costruire i binari usando il compilatore `mpiicx` basato su LLVM:
 
 ```bash
-FLAGS="-O3 -xSAPPHIRERAPIDS -ipo -ffast-math -fiopenmp-simd -qopt-mem-layout-trans=3"
+FLAGS="-O3 -xSAPPHIRERAPIDS -ipo -fiopenmp-simd -qopt-mem-layout-trans=3"
 mpiicx $FLAGS generate_seed.c -o generate_seed
 mpiicx $FLAGS lab8vm-file.c -o game_of_life
 ```

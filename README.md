@@ -523,7 +523,7 @@ While Intel provides different MPI compilers, all source files in this project a
 The compilation string is specifically tailored to maximize hardware utilization on the host architecture while safely bypassing compiler bottlenecks:
 
 ```bash
-mpiicx -O3 -QxHost -Qipo -ffast-math -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_CRT_SECURE_NO_WARNINGS lab8vm-file.c -o game_of_life.exe
+mpiicx -O3 -QxHost -Qipo -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_CRT_SECURE_NO_WARNINGS lab8vm-file.c -o game_of_life.exe
 ```
 
 | Flag | Functional Purpose |
@@ -531,7 +531,6 @@ mpiicx -O3 -QxHost -Qipo -ffast-math -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_
 | `-O3` | Enables aggressive high-level optimizations, including loop vectorization, unrolling, and aggressive code restructuring. |
 | `-QxHost` / `-xHost` | Directs the compiler to generate specialized code targeting the highest instruction set architecture extensions available natively on the compilation host machine. |
 | `-Qipo` / `-ipo` | Activates interprocedural optimization, analyzing code structures across multiple source translation units to optimize function inlining. |
-| `-ffast-math` | Breaks strict IEEE 754 compliance for floating-point math to accelerate execution through hardware approximations. |
 | `-Qiopenmp-simd` | Forces the compiler to scan and optimize OpenMP SIMD directives to vectorize loops without runtime threading overhead. |
 | `-Qopt-mem-layout-trans:3` | Performs level-3 memory layout transformations on data structures to maximize cache spatial locality and improve structural layout alignment. |
 
@@ -564,7 +563,7 @@ The provisioning script automates the complete provisioning pipeline on Rocky Li
 9. Targeted native compilations: accesses the workspace directory and dynamically applies the specific Intel Sapphire Rapids hardware optimization flags (`-xSAPPHIRERAPIDS`) to build the binaries using the LLVM-based `mpiicx` compiler:
 
 ```bash
-FLAGS="-O3 -xSAPPHIRERAPIDS -ipo -ffast-math -fiopenmp-simd -qopt-mem-layout-trans=3"
+FLAGS="-O3 -xSAPPHIRERAPIDS -ipo -fiopenmp-simd -qopt-mem-layout-trans=3"
 mpiicx $FLAGS generate_seed.c -o generate_seed
 mpiicx $FLAGS lab8vm-file.c -o game_of_life
 ```

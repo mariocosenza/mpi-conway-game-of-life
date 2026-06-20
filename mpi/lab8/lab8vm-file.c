@@ -87,7 +87,6 @@ void partition_dimension(uint32_t total, int parts, int *sizes, int *offsets) {
 }
 
 
-
 void parse_args(int argc, char **argv, uint32_t *M, uint32_t *N) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-N") == 0 && i + 1 < argc) {
@@ -99,12 +98,11 @@ void parse_args(int argc, char **argv, uint32_t *M, uint32_t *N) {
         } else if (strcmp(argv[i], "-S") == 0 && i + 1 < argc) {
             SEED = (uint32_t)atoi(argv[++i]);
         } else if (strcmp(argv[i], "-FN") == 0 && i + 1 < argc) {
-            strcpy(filename, argv[++i]);
+            snprintf(filename, sizeof(filename), "%s", argv[++i]);
         } else if (strcmp(argv[i], "-SO") == 0) {
             SAVE_OUTPUT = 1;
-        }
-        else {
-            fprintf(stderr,"Argomento sconosciuto. Usare -N <cols> -M <rows> -G <generations> -S <seed> -FN <filename> -SO (salva output)\n");
+        } else {
+            fprintf(stderr, "Argomento sconosciuto o incompleto. Usare -N <cols> -M <rows> -G <generations> -S <seed> -FN <filename> -SO (salva output)\n");
             exit(EXIT_FAILURE);
         }
     }
@@ -126,21 +124,21 @@ static inline void play_inner_cells(void *current_grid_ptr, void *next_grid_ptr,
     }
 }
 
-static inline uint_fast8_t read_cell_or_ghost(Game_matrix *gm, int_fast32_t r, int_fast32_t c) {
+static inline uint8_t read_cell_or_ghost(Game_matrix *gm, int_fast64_t r, int_fast64_t c) {
     uint32_t max_rows = gm->size.rows;
     uint32_t max_cols = gm->size.cols;
     uint8_t (*local_grid)[max_cols] = gm->matrix;
 
     if (r < 0 && c < 0) return gm->recv_l_ghost[0];
-    if (r < 0 && c >= (int_fast32_t)max_cols) return gm->recv_r_ghost[0];
-    if (r >= (int_fast32_t)max_rows && c < 0) return gm->recv_l_ghost[max_rows + 1];
-    if (r >= (int_fast32_t)max_rows && c >= (int_fast32_t)max_cols) return gm->recv_r_ghost[max_rows + 1];
+    if (r < 0 && c >= (int_fast64_t)max_cols) return gm->recv_r_ghost[0];
+    if (r >= (int_fast64_t)max_rows && c < 0) return gm->recv_l_ghost[max_rows + 1];
+    if (r >= (int_fast64_t)max_rows && c >= (int_fast64_t)max_cols) return gm->recv_r_ghost[max_rows + 1];
 
     if (r < 0) return gm->recv_t_ghost[c];
-    if (r >= (int_fast32_t)max_rows) return gm->recv_b_ghost[c];
+    if (r >= (int_fast64_t)max_rows) return gm->recv_b_ghost[c];
 
     if (c < 0) return gm->recv_l_ghost[r + 1];
-    if (c >= (int_fast32_t)max_cols) return gm->recv_r_ghost[r + 1];
+    if (c >= (int_fast64_t)max_cols) return gm->recv_r_ghost[r + 1];
 
     return local_grid[r][c];
 }
@@ -152,10 +150,10 @@ static inline void play_border_cells(Game_matrix *gm, void *next_grid_ptr, uint3
 
     uint_fast8_t live_neighbors = 0;
     
-    for (int_fast32_t dr = -1; dr <= 1; dr++) {
-        for (int_fast32_t dc = -1; dc <= 1; dc++) {
+    for (int_fast64_t dr = -1; dr <= 1; dr++) {
+        for (int_fast64_t dc = -1; dc <= 1; dc++) {
             if (dr == 0 && dc == 0) continue;
-            live_neighbors += read_cell_or_ghost(gm, (int_fast32_t)r + dr, (int_fast32_t)c + dc);
+            live_neighbors += read_cell_or_ghost(gm, (int_fast64_t)r + dr, (int_fast64_t)c + dc);
         }
     }
 

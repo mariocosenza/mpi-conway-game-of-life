@@ -153,7 +153,7 @@ static inline void play_border_cells(Game_matrix *gm, void *next_grid_ptr, uint3
     for (int_fast64_t dr = -1; dr <= 1; dr++) {
         for (int_fast64_t dc = -1; dc <= 1; dc++) {
             if (dr == 0 && dc == 0) continue;
-            live_neighbors += read_cell_or_ghost(gm, (int_fast64_t)r + dr, (int_fast64_t)c + dc);
+            live_neighbors += read_cell_or_ghost(gm, r + dr, c + dc);
         }
     }
 

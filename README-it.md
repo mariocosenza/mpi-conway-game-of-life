@@ -522,7 +522,7 @@ Anche se Intel fornisce diversi compilatori MPI, tutti i file sorgente di questo
 La stringa di compilazione e stata costruita appositamente per massimizzare l'utilizzo dell'hardware sulla macchina host evitando in sicurezza i colli di bottiglia del compilatore:
 
 ```bash
-mpiicx -O3 -QxHost -Qipo -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_CRT_SECURE_NO_WARNINGS lab8vm-file.c -o game_of_life.exe
+mpiicx -O3 -QxHost -Qipo -Qiopenmp-simd -Qopt-mem-layout-trans:3 lab8vm-file.c -o game_of_life.exe
 ```
 
 | Flag | Funzione |

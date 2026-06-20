@@ -523,7 +523,7 @@ While Intel provides different MPI compilers, all source files in this project a
 The compilation string is specifically tailored to maximize hardware utilization on the host architecture while safely bypassing compiler bottlenecks:
 
 ```bash
-mpiicx -O3 -QxHost -Qipo -Qiopenmp-simd -Qopt-mem-layout-trans:3 /D_CRT_SECURE_NO_WARNINGS lab8vm-file.c -o game_of_life.exe
+mpiicx -O3 -QxHost -Qipo -Qiopenmp-simd -Qopt-mem-layout-trans:3 lab8vm-file.c -o game_of_life.exe
 ```
 
 | Flag | Functional Purpose |
